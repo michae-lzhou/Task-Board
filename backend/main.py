@@ -15,3 +15,7 @@ app.add_middleware(
 def read_root():
     return {"message": "Hello from backend"}
 
+from database import Base, engine
+import models
+
+models.Base.metadata.create_all(bind=engine)
