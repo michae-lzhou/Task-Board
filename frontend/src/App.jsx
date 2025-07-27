@@ -1,15 +1,12 @@
-import { useEffect, useState } from 'react'
-import axios from 'axios'
+import Dashboard from './pages/Dashboard'
+import './App.css'
 
 function App() {
-  const [data, setData] = useState(null)
-
-  useEffect(() => {
-    axios.get('http://localhost:8000/')
-      .then(res => setData(res.data))
-  }, [])
-
-  return <h1>{data?.message || 'Loading...'}</h1>
+  return (
+    <div className="App">
+      <Dashboard />
+    </div>
+  )
 }
 
-export default App;
+export default App
