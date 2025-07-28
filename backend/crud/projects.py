@@ -10,7 +10,7 @@ individual fields
 from sqlalchemy.orm import Session
 
 # Local files
-from models import Project, User
+from models import Project, User, Task
 from schemas import ProjectCreate
 from exceptions import *
 
@@ -65,6 +65,7 @@ def add_user_to_project(db: Session, project_id: int, user_id: int):
         project.members.append(user)
         db.commit()
         db.refresh(project)
+        db.refresh(user)  # Add this line to refresh the user object too
     else:
         raise UserInProject(user.name, project.name)
 
@@ -86,8 +87,19 @@ def remove_user_from_project(db: Session, project_id: int, user_id: int):
 
     if user in project.members:
         project.members.remove(user)
+        # Find tasks in this project assigned to the user and reassign to NULL
+        tasks = db.query(Task).filter(
+                    Task.project_id == project_id,
+                    Task.assigned_to == user_id
+                ).all()
+
+        for task in tasks:
+            task.assigned_to = None
+            task.assigned_user = None
+
         db.commit()
         db.refresh(project)
+        db.refresh(user)  # Add this line
     else:
         raise UserNotInProject(user.name, project.name)
 

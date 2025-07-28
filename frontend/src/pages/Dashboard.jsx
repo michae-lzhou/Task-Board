@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import axios from 'axios'
 import './Dashboard.css'
-import Members from './Members'  // Import the Members component
-import Tasks from './Tasks'      // Import the Tasks component
+import Members from './Members'
+import Tasks from './Tasks'
+import { useWebSocketProjects } from '../hooks/useWebSocket'
+import ConnectionIndicator from '../components/ConnectionIndicator'
 
 function Dashboard() {
   const [projects, setProjects] = useState([])
@@ -13,8 +15,40 @@ function Dashboard() {
   const [isCreating, setIsCreating] = useState(false)
   
   // Navigation state
-  const [currentView, setCurrentView] = useState('dashboard') // 'dashboard', 'members', or 'tasks'
+  const [currentView, setCurrentView] = useState('dashboard')
   const [selectedProjectId, setSelectedProjectId] = useState(null)
+
+  // WebSocket handler for real-time project updates
+  const handleProjectsChange = useCallback((action, projectData) => {
+    switch (action) {
+      case 'created':
+        setProjects(prev => {
+          // Check if project already exists to avoid duplicates
+          const exists = prev.some(p => p.id === projectData.id)
+          if (exists) return prev
+          return [...prev, projectData]
+        })
+        break
+      
+      case 'updated':
+        setProjects(prev => 
+          prev.map(p => p.id === projectData.id ? { ...p, ...projectData } : p)
+        )
+        break
+      
+      case 'deleted':
+        setProjects(prev => 
+          prev.filter(p => p.id !== projectData.id)
+        )
+        break
+      
+      default:
+        console.log('Unknown project action:', action)
+    }
+  }, [])
+
+  // Set up WebSocket subscriptions
+  useWebSocketProjects(handleProjectsChange)
 
   useEffect(() => {
     fetchProjects()
@@ -23,7 +57,6 @@ function Dashboard() {
   const fetchProjects = async () => {
     try {
       setLoading(true)
-      // Using your FastAPI projects endpoint
       const response = await axios.get('http://localhost:8000/projects/')
       setProjects(response.data)
       setError(null)
@@ -36,6 +69,7 @@ function Dashboard() {
   }
 
   const handleDeleteProject = (projectId) => {
+    // Optimistically update UI - WebSocket will also trigger an update
     setProjects(projects.filter(p => p.id !== projectId))
   }
 
@@ -50,15 +84,18 @@ function Dashboard() {
 
     try {
       setIsCreating(true)
-      // Create new project via API
       const response = await axios.post('http://localhost:8000/projects/', {
         name: newProjectName.trim()
       })
       
-      // Add the new project to the list
-      setProjects([...projects, response.data])
+      // WebSocket will handle adding the project to the list
+      // But we'll also add it locally for immediate feedback
+      setProjects(prev => {
+        const exists = prev.some(p => p.id === response.data.id)
+        if (exists) return prev
+        return [...prev, response.data]
+      })
       
-      // Close modal and reset form
       setShowAddModal(false)
       setNewProjectName('')
       
@@ -118,11 +155,14 @@ function Dashboard() {
         <header className="fixed-header">
           <div className="header-content">
             <h1>Project Dashboard</h1>
-            <div className="project-count">{projects.length} Projects</div>
-            <button className="add-project-btn" onClick={handleAddProject}>
-              <span className="add-icon">+</span>
-              Add Project
-            </button>
+            <div className="header-right">
+              <ConnectionIndicator />
+              <div className="project-count">{projects.length} Projects</div>
+              <button className="add-project-btn" onClick={handleAddProject}>
+                <span className="add-icon">+</span>
+                Add Project
+              </button>
+            </div>
           </div>
         </header>
         <div className="dashboard">
@@ -141,11 +181,14 @@ function Dashboard() {
         <header className="fixed-header">
           <div className="header-content">
             <h1>Project Dashboard</h1>
-            <div className="project-count">{projects.length} Projects</div>
-            <button className="add-project-btn" onClick={handleAddProject}>
-              <span className="add-icon">+</span>
-              Add Project
-            </button>
+            <div className="header-right">
+              <ConnectionIndicator />
+              <div className="project-count">{projects.length} Projects</div>
+              <button className="add-project-btn" onClick={handleAddProject}>
+                <span className="add-icon">+</span>
+                Add Project
+              </button>
+            </div>
           </div>
         </header>
         <div className="dashboard">
@@ -165,11 +208,14 @@ function Dashboard() {
       <header className="fixed-header">
         <div className="header-content">
           <h1>Project Dashboard</h1>
-          <div className="project-count">{projects.length} Projects</div>
-          <button className="add-project-btn" onClick={handleAddProject}>
-            <span className="add-icon">+</span>
-            Add Project
-          </button>
+          <div className="header-right">
+            <ConnectionIndicator />
+            <div className="project-count">{projects.length} Projects</div>
+            <button className="add-project-btn" onClick={handleAddProject}>
+              <span className="add-icon">+</span>
+              Add Project
+            </button>
+          </div>
         </div>
       </header>
       

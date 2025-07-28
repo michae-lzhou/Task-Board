@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import axios from 'axios'
 import './Members.css'
+import { useWebSocketMembers } from '../hooks/useWebSocket'
+import ConnectionIndicator from '../components/ConnectionIndicator'
 
 function Members({ projectId, onBack }) {
   const [members, setMembers] = useState([])
@@ -11,6 +13,21 @@ function Members({ projectId, onBack }) {
   const [newMemberName, setNewMemberName] = useState('')
   const [newMemberEmail, setNewMemberEmail] = useState('')
   const [isCreating, setIsCreating] = useState(false)
+
+  // WebSocket handler for real-time member updates
+  const handleMembersChange = useCallback((action, payload) => {
+    console.log('WebSocket member event:', action, payload)
+    if (!payload || parseInt(payload.project_id) !== parseInt(projectId)) return
+    const user = payload.user
+    if (!user || !user.id) return
+    if (action === 'added') {
+      setMembers(prev => prev.some(m => m.id === user.id) ? prev : [...prev, user])
+    } else if (action === 'removed') {
+      setMembers(prev => prev.filter(m => m.id !== user.id))
+    }
+  }, [projectId])
+
+  useWebSocketMembers(handleMembersChange)
 
   useEffect(() => {
     if (projectId) {

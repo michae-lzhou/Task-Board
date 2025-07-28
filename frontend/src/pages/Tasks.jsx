@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import axios from 'axios'
 import './Tasks.css'
+import { useWebSocketTasks } from '../hooks/useWebSocket'
+import ConnectionIndicator from '../components/ConnectionIndicator'
 
 function Tasks({ projectId, onBack }) {
   const [tasks, setTasks] = useState([])
@@ -21,6 +23,43 @@ function Tasks({ projectId, onBack }) {
   // Drag and drop state
   const [draggedTask, setDraggedTask] = useState(null)
   const [dragOverColumn, setDragOverColumn] = useState(null)
+
+  // WebSocket handler for real-time task updates
+  const handleTasksChange = useCallback((action, taskData) => {
+    // Only handle tasks for the current project
+    if (taskData.project_id !== parseInt(projectId)) {
+      return
+    }
+
+    switch (action) {
+      case 'created':
+        setTasks(prev => {
+          // Check if task already exists to avoid duplicates
+          const exists = prev.some(t => t.id === taskData.id)
+          if (exists) return prev
+          return [...prev, taskData]
+        })
+        break
+      
+      case 'updated':
+        setTasks(prev => 
+          prev.map(t => t.id === taskData.id ? { ...t, ...taskData } : t)
+        )
+        break
+      
+      case 'deleted':
+        setTasks(prev => 
+          prev.filter(t => t.id !== taskData.id)
+        )
+        break
+      
+      default:
+        console.log('Unknown task action:', action)
+    }
+  }, [projectId])
+
+  // Set up WebSocket subscriptions
+  useWebSocketTasks(handleTasksChange)
 
   useEffect(() => {
     if (projectId) {
@@ -134,7 +173,7 @@ function Tasks({ projectId, onBack }) {
       const response = await axios.put(`http://localhost:8000/tasks/${draggedTask.id}`, payload)
       console.log(`Task ${draggedTask.id} successfully moved to ${newStatus}`)
       
-      // Update with server response to ensure consistency
+      // WebSocket will handle the update, but we'll also update locally for consistency
       setTasks(prevTasks => 
         prevTasks.map(task => 
           task.id === draggedTask.id ? response.data : task
@@ -188,7 +227,13 @@ function Tasks({ projectId, onBack }) {
       
       const response = await axios.post('http://localhost:8000/tasks/', payload)
       
-      setTasks([...tasks, response.data])
+      // WebSocket will handle adding the task, but we'll also add it locally for immediate feedback
+      setTasks(prev => {
+        const exists = prev.some(t => t.id === response.data.id)
+        if (exists) return prev
+        return [...prev, response.data]
+      })
+      
       setShowAddModal(false)
       resetTaskForm()
       
@@ -221,9 +266,11 @@ function Tasks({ projectId, onBack }) {
       
       const response = await axios.put(`http://localhost:8000/tasks/${editingTask.id}`, payload)
       
+      // WebSocket will handle the update, but we'll also update locally for immediate feedback
       setTasks(tasks.map(task => 
         task.id === editingTask.id ? response.data : task
       ))
+      
       setShowEditModal(false)
       setEditingTask(null)
       resetTaskForm()
@@ -241,6 +288,7 @@ function Tasks({ projectId, onBack }) {
   const handleDeleteTask = async (taskId) => {
     try {
       await axios.delete(`http://localhost:8000/tasks/${taskId}`)
+      // WebSocket will handle the removal, but we'll also remove locally for immediate feedback
       setTasks(tasks.filter(task => task.id !== taskId))
     } catch (err) {
       console.error('Error deleting task:', err)
@@ -301,10 +349,13 @@ function Tasks({ projectId, onBack }) {
           </div>
         </div>
 
-        <button className="add-task-btn" onClick={handleAddTask}>
-          <span className="add-icon">+</span>
-          Add Task
-        </button>
+        <div className="header-right">
+          <ConnectionIndicator />
+          <button className="add-task-btn" onClick={handleAddTask}>
+            <span className="add-icon">+</span>
+            Add Task
+          </button>
+        </div>
       </div>
     </header>
   )

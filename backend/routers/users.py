@@ -1,5 +1,5 @@
 # routers/users.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from database import SessionLocal
 import logging
@@ -7,6 +7,7 @@ import logging
 from exceptions import *
 from crud import users
 import schemas
+from websocket_utils import WebSocketManager, convert_to_dict
 
 router = APIRouter()
 
@@ -21,9 +22,16 @@ def get_db():
 # * Users can exist without being bound to a task or project
 # * Cannot have duplicate user emails (allows duplicate names)
 @router.post("/", response_model=schemas.User)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+async def create_user(user: schemas.UserCreate,
+                      request: Request, db: Session = Depends(get_db)):
     try:
-        return users.create_user(db, user)
+        new_user = users.create_user(db, user)
+        
+        # Emit WebSocket event
+        ws_manager = WebSocketManager(request.app.state.sio)
+        await ws_manager.emit_user_created(convert_to_dict(new_user))
+        
+        return new_user
     except DuplicateUserEmail as e:
         logging.warning(e.message)
         raise HTTPException(status_code=400, detail=e.message)
@@ -46,9 +54,14 @@ def read_all_users(db: Session = Depends(get_db)):
 # Delete User
 # * Handle not found error
 @router.delete("/{user_id}")
-def delete_user(user_id: int, db: Session = Depends(get_db)):
+async def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
     try:
         user = users.delete_user(db, user_id)
+        
+        # Emit WebSocket event
+        ws_manager = WebSocketManager(request.app.state.sio)
+        await ws_manager.emit_user_deleted(user_id, user.name)
+        
         return {"message": f"User [{user.name}] deleted"}
     except UserNotFound as e:
         logging.warning(e.message)

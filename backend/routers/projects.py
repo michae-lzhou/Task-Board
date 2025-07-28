@@ -1,5 +1,5 @@
 # routers/projects.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from database import SessionLocal
 import logging
@@ -7,6 +7,7 @@ import logging
 from exceptions import *
 from crud import projects, users
 import schemas
+from websocket_utils import WebSocketManager, convert_to_dict
 
 router = APIRouter()
 
@@ -21,10 +22,17 @@ def get_db():
 # * Cannot have duplicate project names
 # * Has a list of users associated with each project (not required on creation)
 @router.post("/", response_model=schemas.Project)
-def create_project(project: schemas.ProjectCreate,
+async def create_project(project: schemas.ProjectCreate,
+                   request: Request,
                    db: Session = Depends(get_db)):
     try:
-        return projects.create_project(db, project)
+        new_project = projects.create_project(db, project)
+        
+        # Emit WebSocket event
+        ws_manager = WebSocketManager(request.app.state.sio)
+        await ws_manager.emit_project_created(convert_to_dict(new_project))
+        
+        return new_project
     except DuplicateProjectName as e:
         logging.warning(e.message)
         raise HTTPException(status_code=400, detail=e.message)
@@ -45,14 +53,22 @@ def read_project(project_id: int, db: Session = Depends(get_db)):
 # * Cannot have duplicate user email here either
 # * Friendly message if user is already in the project
 @router.post("/{project_id}/add-member", response_model=schemas.User)
-def add_member(project_id: int, user: schemas.UserCreate, db: Session = Depends(get_db)):
+async def add_member(project_id: int, user: schemas.UserCreate, 
+                     request: Request,
+                     db: Session = Depends(get_db)):
     # Get the user's id from the name and email
     try:
         # The following line is purely to raise ProjectNotFound before
         # DuplicateUserEmail (makes more sense to me)
         project = projects.get_project(db, project_id)
         curr_user = users.find_user_by_email(db, user.name, user.email)
-        return projects.add_user_to_project(db, project_id, curr_user.id)
+        added_user = projects.add_user_to_project(db, project_id, curr_user.id)
+        
+        # Emit WebSocket event
+        ws_manager = WebSocketManager(request.app.state.sio)
+        await ws_manager.emit_member_added(project_id, convert_to_dict(added_user))
+        
+        return added_user
     except (UserNotFound, ProjectNotFound) as e:
         logging.warning(e.message)
         raise HTTPException(status_code=404, detail=e.message)
@@ -66,12 +82,21 @@ def add_member(project_id: int, user: schemas.UserCreate, db: Session = Depends(
 # Remove Member from Project
 # * Handle not found error
 # * Raise error if user is not in the project
+# * If user is associated with any tasks, reassign the tasks to no one
 @router.post("/{project_id}/remove-member", response_model=schemas.User)
-def remove_member(project_id: int, user: schemas.UserCreate, db: Session = Depends(get_db)):
+async def remove_member(project_id: int, user: schemas.UserCreate, 
+                        request: Request,
+                        db: Session = Depends(get_db)):
     try:
         project = projects.get_project(db, project_id)
         user = users.find_user_by_email(db, user.name, user.email)
-        return projects.remove_user_from_project(db, project_id, user.id)
+        removed_user = projects.remove_user_from_project(db, project_id, user.id)
+        
+        # Emit WebSocket event
+        ws_manager = WebSocketManager(request.app.state.sio)
+        await ws_manager.emit_member_removed(project_id, convert_to_dict(removed_user))
+        
+        return removed_user
     except (UserNotFound, ProjectNotFound) as e:
         logging.warning(e.message)
         raise HTTPException(status_code=404, detail=e.message)
@@ -87,9 +112,16 @@ def read_all_projects(db: Session = Depends(get_db)):
 # Delete Project
 # * Handle not found error
 @router.delete("/{project_id}")
-def delete_project(project_id: int, db: Session = Depends(get_db)):
+async def delete_project(project_id: int, 
+                         request: Request,
+                         db: Session = Depends(get_db)):
     try:
         project = projects.delete_project(db, project_id)
+        
+        # Emit WebSocket event
+        ws_manager = WebSocketManager(request.app.state.sio)
+        await ws_manager.emit_project_deleted(project_id, project.name)
+        
         return {"message": f"Project [{project.name}] deleted"}
     except ProjectNotFound as e:
         logging.warning(e.message)
@@ -115,4 +147,3 @@ def read_users_by_project(project_id: int, db: Session = Depends(get_db)):
     except ProjectNotFound as e:
         logging.warning(e.message)
         raise HTTPException(status_code=404, detail=e.message)
-

@@ -1,5 +1,5 @@
 # routers/tasks.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from database import SessionLocal
 import logging
@@ -7,6 +7,7 @@ import logging
 from exceptions import *
 from crud import tasks
 import schemas
+from websocket_utils import WebSocketManager, convert_to_dict
 
 router = APIRouter()
 
@@ -26,9 +27,16 @@ def get_db():
 # TODO: an extension of above: each tasks needs a project ID, so disallow any
 # task creation if there are no projects (bullet proof the operations)
 @router.post("/", response_model=schemas.Task)
-def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
+async def create_task(task: schemas.TaskCreate,
+                      request: Request, db: Session = Depends(get_db)):
     try:
-        return tasks.create_task(db, task)
+        new_task = tasks.create_task(db, task)
+        
+        # Emit WebSocket event
+        ws_manager = WebSocketManager(request.app.state.sio)
+        await ws_manager.emit_task_created(convert_to_dict(new_task))
+        
+        return new_task
     except ProjectNotFound as e:
         logging.warning(e.message)
         raise HTTPException(status_code=404, detail=e.message)
@@ -52,9 +60,16 @@ def read_task(task_id: int, db: Session = Depends(get_db)):
 # * Can only assign to a current member in the project
 # * Again, cannot update a task to have duplicate task name
 @router.put("/{task_id}", response_model=schemas.Task)
-def update_task(task_id: int, updated: schemas.TaskCreate, db: Session = Depends(get_db)):
+async def update_task(task_id: int, updated: schemas.TaskCreate,
+                      request: Request, db: Session = Depends(get_db)):
     try:
-        return tasks.update_task(db, task_id, updated)
+        updated_task = tasks.update_task(db, task_id, updated)
+        
+        # Emit WebSocket event
+        ws_manager = WebSocketManager(request.app.state.sio)
+        await ws_manager.emit_task_updated(convert_to_dict(updated_task))
+        
+        return updated_task
     except (TaskNotFound, ProjectNotFound, UserNotFound) as e:
         logging.warning(e.message)
         raise HTTPException(status_code=404, detail=e.message)
@@ -65,9 +80,14 @@ def update_task(task_id: int, updated: schemas.TaskCreate, db: Session = Depends
 # Delete Task
 # * Handle not found error
 @router.delete("/{task_id}")
-def delete_task(task_id: int, db: Session = Depends(get_db)):
+async def delete_task(task_id: int, request: Request, db: Session = Depends(get_db)):
     try:
         task = tasks.delete_task(db, task_id)
+        
+        # Emit WebSocket event
+        ws_manager = WebSocketManager(request.app.state.sio)
+        await ws_manager.emit_task_deleted(task_id, task.title)
+        
         return {"message": f"Task [{task.title}] deleted"}
     except TaskNotFound as e:
         logging.warning(e.message)
