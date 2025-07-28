@@ -1,5 +1,12 @@
-/* src/components/ConnectionIndicator.css */
+/*******************************************************************************
+ * ConnectionIndicator.css
+ * Purpose: Styles the connection status indicator with visual cues for
+ *          connected and disconnected states, including color, animation,
+ *          and layout.
+ ******************************************************************************/
+
 .connection-indicator {
+  /* Flex container with spacing, padding, rounded corners, and transition */
   display: flex;
   align-items: center;
   gap: 6px;
@@ -11,18 +18,21 @@
 }
 
 .connection-indicator.connected {
+  /* Styles for connected state: green background and border */
   background-color: rgba(34, 197, 94, 0.1);
   color: #059669;
   border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
 .connection-indicator.disconnected {
+  /* Styles for disconnected state: red background and border */
   background-color: rgba(239, 68, 68, 0.1);
   color: #dc2626;
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .status-dot {
+  /* Small circular dot with smooth transition */
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -30,16 +40,19 @@
 }
 
 .connection-indicator.connected .status-dot {
+  /* Green glowing dot when connected */
   background-color: #22c55e;
   box-shadow: 0 0 4px rgba(34, 197, 94, 0.4);
 }
 
 .connection-indicator.disconnected .status-dot {
+  /* Red pulsing dot when disconnected */
   background-color: #ef4444;
   animation: pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes pulse {
+  /* Pulse animation scaling opacity and size */
   0%, 100% {
     opacity: 1;
     transform: scale(1);

@@ -1,3 +1,10 @@
+/*******************************************************************************
+ * Members.jsx
+ * Purpose: Manages project members with real-time updates via WebSocket.
+ *          Displays member cards in a grid layout and handles adding/removing
+ *          team members from projects.
+ ******************************************************************************/
+
 import { useEffect, useState, useCallback } from 'react'
 import axios from 'axios'
 import './Members.css'
@@ -17,11 +24,18 @@ function Members({ projectId, onBack }) {
   // WebSocket handler for real-time member updates
   const handleMembersChange = useCallback((action, payload) => {
     console.log('WebSocket member event:', action, payload)
-    if (!payload || parseInt(payload.project_id) !== parseInt(projectId)) return
+    
+    if (!payload || parseInt(payload.project_id) !== parseInt(projectId)) {
+      return
+    }
+    
     const user = payload.user
     if (!user || !user.id) return
+
     if (action === 'added') {
-      setMembers(prev => prev.some(m => m.id === user.id) ? prev : [...prev, user])
+      setMembers(prev => 
+        prev.some(m => m.id === user.id) ? prev : [...prev, user]
+      )
     } else if (action === 'removed') {
       setMembers(prev => prev.filter(m => m.id !== user.id))
     }
@@ -67,13 +81,15 @@ function Members({ projectId, onBack }) {
 
     try {
       setIsCreating(true)
-      const response = await
-            axios.post(`http://localhost:8000/projects/${projectId}/add-member`, {
-        name: newMemberName.trim(),
-        email: newMemberEmail.trim()
-      })
+      const response = await axios.post(
+        `http://localhost:8000/projects/${projectId}/add-member`, 
+        {
+          name: newMemberName.trim(),
+          email: newMemberEmail.trim()
+        }
+      )
       
-      console.log("User added as a member:", response.data);
+      console.log("User added as a member:", response.data)
       setMembers([...members, response.data])
       setShowAddModal(false)
       setNewMemberName('')
@@ -105,9 +121,14 @@ function Members({ projectId, onBack }) {
         </button>
 
         <div className="header-text">
-          <h1>{project?.name ? `${project.name} Members` : 'Project Members'}</h1>
+          <h1>
+            {project?.name ? `${project.name} Members` : 'Project Members'}
+          </h1>
           <div className="project-info">
-            {loading ? 'Loading...' : `${members.length} Members${project ? ` • Project #${project.id}` : ''}`}
+            {loading ? 'Loading...' : 
+              `${members.length} Members${project ? 
+                ` • Project #${project.id}` : ''}`
+            }
           </div>
         </div>
 
@@ -185,7 +206,9 @@ function Members({ projectId, onBack }) {
           <div className="modal">
             <div className="modal-header">
               <h2>Add Team Member</h2>
-              <button className="close-btn" onClick={handleCloseModal}>×</button>
+              <button className="close-btn" onClick={handleCloseModal}>
+                ×
+              </button>
             </div>
             <form onSubmit={handleCreateMember} className="modal-content">
               <div className="form-group">
@@ -223,7 +246,8 @@ function Members({ projectId, onBack }) {
                 <button 
                   type="submit" 
                   className="btn primary"
-                  disabled={!newMemberName.trim() || !newMemberEmail.trim() || isCreating}
+                  disabled={!newMemberName.trim() || 
+                           !newMemberEmail.trim() || isCreating}
                 >
                   {isCreating ? (
                     <>
@@ -251,10 +275,13 @@ function MemberCard({ member, projectId, onDeleteMember }) {
 
   const handleDelete = async () => {
     try {
-      await axios.post(`http://localhost:8000/projects/${projectId}/remove-member`, {
-        name: member.name,
-        email: member.email,
-      })
+      await axios.post(
+        `http://localhost:8000/projects/${projectId}/remove-member`, 
+        {
+          name: member.name,
+          email: member.email,
+        }
+      )
       onDeleteMember(member.id)
       setShowDeleteConfirm(false)
     } catch (err) {
@@ -286,7 +313,10 @@ function MemberCard({ member, projectId, onDeleteMember }) {
   return (
     <div className="member-card">
       <div className="member-header">
-        <div className="member-avatar-large" style={{ background: getRandomColor(member.id) }}>
+        <div 
+          className="member-avatar-large" 
+          style={{ background: getRandomColor(member.id) }}
+        >
           {getInitials(member.name)}
         </div>
         <div className="member-info">
@@ -311,7 +341,10 @@ function MemberCard({ member, projectId, onDeleteMember }) {
             <button className="btn btn-danger-solid" onClick={handleDelete}>
               Remove
             </button>
-            <button className="btn secondary" onClick={() => setShowDeleteConfirm(false)}>
+            <button 
+              className="btn secondary" 
+              onClick={() => setShowDeleteConfirm(false)}
+            >
               Cancel
             </button>
           </div>

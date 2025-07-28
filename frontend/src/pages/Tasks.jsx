@@ -1,3 +1,10 @@
+/*******************************************************************************
+ * Tasks.jsx
+ * Purpose: Kanban-style task management interface with drag-and-drop 
+ *          functionality. Displays tasks in columns (To-do, In Progress, Done)
+ *          with real-time updates via WebSocket connections.
+ ******************************************************************************/
+
 import { useEffect, useState, useCallback } from 'react'
 import axios from 'axios'
 import './Tasks.css'
@@ -19,8 +26,6 @@ function Tasks({ projectId, onBack }) {
   const [newTaskAssigneeId, setNewTaskAssigneeId] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
-  
-  // Drag and drop state
   const [draggedTask, setDraggedTask] = useState(null)
   const [dragOverColumn, setDragOverColumn] = useState(null)
 
@@ -34,7 +39,6 @@ function Tasks({ projectId, onBack }) {
     switch (action) {
       case 'created':
         setTasks(prev => {
-          // Check if task already exists to avoid duplicates
           const exists = prev.some(t => t.id === taskData.id)
           if (exists) return prev
           return [...prev, taskData]
@@ -43,7 +47,8 @@ function Tasks({ projectId, onBack }) {
       
       case 'updated':
         setTasks(prev => 
-          prev.map(t => t.id === taskData.id ? { ...t, ...taskData } : t)
+          prev.map(t => t.id === taskData.id ? 
+            { ...t, ...taskData } : t)
         )
         break
       
@@ -58,7 +63,6 @@ function Tasks({ projectId, onBack }) {
     }
   }, [projectId])
 
-  // Set up WebSocket subscriptions
   useWebSocketTasks(handleTasksChange)
 
   useEffect(() => {
@@ -72,11 +76,12 @@ function Tasks({ projectId, onBack }) {
       setLoading(true)
       setError(null)
       
-      const [projectResponse, tasksResponse, membersResponse] = await Promise.all([
-        axios.get(`http://localhost:8000/projects/${projectId}`),
-        axios.get(`http://localhost:8000/projects/${projectId}/tasks`),
-        axios.get(`http://localhost:8000/projects/${projectId}/users`)
-      ])
+      const [projectResponse, tasksResponse, membersResponse] = 
+        await Promise.all([
+          axios.get(`http://localhost:8000/projects/${projectId}`),
+          axios.get(`http://localhost:8000/projects/${projectId}/tasks`),
+          axios.get(`http://localhost:8000/projects/${projectId}/users`)
+        ])
       
       setProject(projectResponse.data)
       setTasks(tasksResponse.data)
@@ -96,10 +101,8 @@ function Tasks({ projectId, onBack }) {
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', task.id.toString())
     
-    // Prevent text selection
     e.target.style.opacity = '0.5'
     
-    // Add dragging class after a short delay to avoid flickering
     setTimeout(() => {
       e.target.classList.add('dragging')
     }, 0)
@@ -125,7 +128,6 @@ function Tasks({ projectId, onBack }) {
   }
 
   const handleDragLeave = (e) => {
-    // Only clear drag over state if we're leaving the column entirely
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX
     const y = e.clientY
@@ -150,7 +152,8 @@ function Tasks({ projectId, onBack }) {
       return
     }
 
-    console.log(`Moving task ${draggedTask.id} from ${draggedTask.status} to ${newStatus}`)
+    console.log(`Moving task ${draggedTask.id} from ${draggedTask.status} 
+                to ${newStatus}`)
 
     // Optimistically update the UI
     const updatedTasks = tasks.map(task => 
@@ -161,7 +164,6 @@ function Tasks({ projectId, onBack }) {
     setTasks(updatedTasks)
 
     try {
-      // Update the task status on the server
       const payload = {
         title: draggedTask.title,
         description: draggedTask.description || null,
@@ -170,10 +172,13 @@ function Tasks({ projectId, onBack }) {
         assigned_to: draggedTask.assigned_to || null
       }
       
-      const response = await axios.put(`http://localhost:8000/tasks/${draggedTask.id}`, payload)
+      const response = await axios.put(
+        `http://localhost:8000/tasks/${draggedTask.id}`, 
+        payload
+      )
+      
       console.log(`Task ${draggedTask.id} successfully moved to ${newStatus}`)
       
-      // WebSocket will handle the update, but we'll also update locally for consistency
       setTasks(prevTasks => 
         prevTasks.map(task => 
           task.id === draggedTask.id ? response.data : task
@@ -181,7 +186,6 @@ function Tasks({ projectId, onBack }) {
       )
     } catch (err) {
       console.error('Error updating task status:', err)
-      // Revert the optimistic update on error
       setTasks(tasks)
       alert('Failed to update task status. Please try again.')
     }
@@ -197,7 +201,8 @@ function Tasks({ projectId, onBack }) {
     setNewTaskTitle(task.title)
     setNewTaskDescription(task.description || '')
     setNewTaskStatus(task.status)
-    setNewTaskAssigneeId(task.assigned_to ? task.assigned_to.toString() : '')
+    setNewTaskAssigneeId(task.assigned_to ? 
+      task.assigned_to.toString() : '')
     setShowEditModal(true)
   }
 
@@ -227,7 +232,6 @@ function Tasks({ projectId, onBack }) {
       
       const response = await axios.post('http://localhost:8000/tasks/', payload)
       
-      // WebSocket will handle adding the task, but we'll also add it locally for immediate feedback
       setTasks(prev => {
         const exists = prev.some(t => t.id === response.data.id)
         if (exists) return prev
@@ -264,9 +268,11 @@ function Tasks({ projectId, onBack }) {
       
       console.log('Updating task with payload:', payload)
       
-      const response = await axios.put(`http://localhost:8000/tasks/${editingTask.id}`, payload)
+      const response = await axios.put(
+        `http://localhost:8000/tasks/${editingTask.id}`, 
+        payload
+      )
       
-      // WebSocket will handle the update, but we'll also update locally for immediate feedback
       setTasks(tasks.map(task => 
         task.id === editingTask.id ? response.data : task
       ))
@@ -288,7 +294,6 @@ function Tasks({ projectId, onBack }) {
   const handleDeleteTask = async (taskId) => {
     try {
       await axios.delete(`http://localhost:8000/tasks/${taskId}`)
-      // WebSocket will handle the removal, but we'll also remove locally for immediate feedback
       setTasks(tasks.filter(task => task.id !== taskId))
     } catch (err) {
       console.error('Error deleting task:', err)
@@ -343,9 +348,14 @@ function Tasks({ projectId, onBack }) {
         </button>
 
         <div className="header-text">
-          <h1>{project?.name ? `${project.name} Tasks` : 'Project Tasks'}</h1>
+          <h1>
+            {project?.name ? `${project.name} Tasks` : 'Project Tasks'}
+          </h1>
           <div className="project-info">
-            {loading ? 'Loading...' : `${tasks.length} Tasks${project ? ` • Project #${project.id}` : ''}`}
+            {loading ? 'Loading...' : 
+              `${tasks.length} Tasks${project ? 
+                ` • Project #${project.id}` : ''}`
+            }
           </div>
         </div>
 
@@ -472,7 +482,9 @@ function Tasks({ projectId, onBack }) {
           <div className="modal">
             <div className="modal-header">
               <h2>Create New Task</h2>
-              <button className="close-btn" onClick={handleCloseModal}>×</button>
+              <button className="close-btn" onClick={handleCloseModal}>
+                ×
+              </button>
             </div>
             <form onSubmit={handleCreateTask} className="modal-content">
               <div className="form-group">
@@ -565,7 +577,9 @@ function Tasks({ projectId, onBack }) {
           <div className="modal">
             <div className="modal-header">
               <h2>Edit Task</h2>
-              <button className="close-btn" onClick={handleCloseModal}>×</button>
+              <button className="close-btn" onClick={handleCloseModal}>
+                ×
+              </button>
             </div>
             <form onSubmit={handleUpdateTask} className="modal-content">
               <div className="form-group">
@@ -581,7 +595,9 @@ function Tasks({ projectId, onBack }) {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="editTaskDescription">Description (Optional)</label>
+                <label htmlFor="editTaskDescription">
+                  Description (Optional)
+                </label>
                 <textarea
                   id="editTaskDescription"
                   value={newTaskDescription}
@@ -734,7 +750,6 @@ function TaskCard({
   }
 
   const handleDragStart = (e) => {
-    // Prevent drag if delete confirmation is showing
     if (showDeleteConfirm) {
       e.preventDefault()
       return
@@ -743,11 +758,10 @@ function TaskCard({
   }
 
   const handleMouseDown = (e) => {
-    // Prevent text selection when starting to drag
-    if (e.target.closest('.task-actions') || e.target.closest('.delete-confirm')) {
-      return // Allow normal interaction with buttons
+    if (e.target.closest('.task-actions') || 
+        e.target.closest('.delete-confirm')) {
+      return
     }
-    // e.preventDefault()
   }
 
   const assigneeName = getAssigneeName(task.assigned_to)

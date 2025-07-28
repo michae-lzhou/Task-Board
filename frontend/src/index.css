@@ -1,4 +1,11 @@
+/*******************************************************************************
+ * index.css
+ * Purpose: Sets global styles for typography, colors, layout, links, buttons,
+ *          and adapts to light/dark color schemes for the app.
+ ******************************************************************************/
+
 :root {
+  /* Define base font styles, colors, and text rendering */
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -14,15 +21,18 @@
 }
 
 a {
+  /* Style links with color and weight */
   font-weight: 500;
   color: #646cff;
   text-decoration: inherit;
 }
 a:hover {
+  /* Darker link color on hover */
   color: #535bf2;
 }
 
 body {
+  /* Remove margin, center content, and set minimum size */
   margin: 0;
   display: flex;
   place-items: center;
@@ -31,11 +41,13 @@ body {
 }
 
 h1 {
+  /* Large heading font size and line height */
   font-size: 3.2em;
   line-height: 1.1;
 }
 
 button {
+  /* Basic button styling with padding, font, background, and cursor */
   border-radius: 8px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
@@ -47,22 +59,27 @@ button {
   transition: border-color 0.25s;
 }
 button:hover {
+  /* Highlight button border on hover */
   border-color: #646cff;
 }
 button:focus,
 button:focus-visible {
+  /* Outline focus for accessibility */
   outline: 4px auto -webkit-focus-ring-color;
 }
 
 @media (prefers-color-scheme: light) {
+  /* Override colors for light mode */
   :root {
     color: #213547;
     background-color: #ffffff;
   }
   a:hover {
+    /* Slightly different hover color in light mode */
     color: #747bff;
   }
   button {
+    /* Light background for buttons */
     background-color: #f9f9f9;
   }
 }

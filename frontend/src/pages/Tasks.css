@@ -1,3 +1,7 @@
+/*******************************************************************************
+ * Tasks.css
+ ******************************************************************************/
+
 /* Tasks Page Styles */
 .tasks-page {
   max-width: 1400px;
@@ -206,7 +210,8 @@
 .task-card[draggable="true"]:hover {
   cursor: grab;
   transform: translateY(-2px);
-  box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.1), 
+              0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 .task-card::before {
@@ -399,8 +404,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% { 
+    transform: rotate(0deg); 
+  }
+  100% { 
+    transform: rotate(360deg); 
+  }
 }
 
 .loading p {
@@ -522,8 +531,12 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { 
+    opacity: 0; 
+  }
+  to { 
+    opacity: 1; 
+  }
 }
 
 @keyframes slideIn {
@@ -668,7 +681,8 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, 
+                              rgba(255, 255, 255, 0.2), transparent);
   transition: left 0.5s;
 }
 
@@ -754,25 +768,6 @@
   display: flex;
   gap: 0.75rem;
   justify-content: center;
-}
-
-/* Drag Instruction Hint */
-.drag-hint {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: rgba(139, 92, 246, 0.1);
-  color: #8b5cf6;
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-
-.task-card:hover .drag-hint {
-  opacity: 1;
 }
 
 /* Responsive Design */

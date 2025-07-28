@@ -1,3 +1,10 @@
+/*******************************************************************************
+ * Dashboard.jsx
+ * Purpose: Main dashboard component that displays a grid of project cards
+ *          and handles project creation, navigation, and real-time updates
+ *          via WebSocket connections.
+ ******************************************************************************/
+
 import { useEffect, useState, useCallback } from 'react'
 import axios from 'axios'
 import './Dashboard.css'
@@ -13,8 +20,6 @@ function Dashboard() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [isCreating, setIsCreating] = useState(false)
-  
-  // Navigation state
   const [currentView, setCurrentView] = useState('dashboard')
   const [selectedProjectId, setSelectedProjectId] = useState(null)
 
@@ -23,7 +28,6 @@ function Dashboard() {
     switch (action) {
       case 'created':
         setProjects(prev => {
-          // Check if project already exists to avoid duplicates
           const exists = prev.some(p => p.id === projectData.id)
           if (exists) return prev
           return [...prev, projectData]
@@ -32,7 +36,8 @@ function Dashboard() {
       
       case 'updated':
         setProjects(prev => 
-          prev.map(p => p.id === projectData.id ? { ...p, ...projectData } : p)
+          prev.map(p => p.id === projectData.id ? 
+            { ...p, ...projectData } : p)
         )
         break
       
@@ -47,7 +52,6 @@ function Dashboard() {
     }
   }, [])
 
-  // Set up WebSocket subscriptions
   useWebSocketProjects(handleProjectsChange)
 
   useEffect(() => {
@@ -69,7 +73,6 @@ function Dashboard() {
   }
 
   const handleDeleteProject = (projectId) => {
-    // Optimistically update UI - WebSocket will also trigger an update
     setProjects(projects.filter(p => p.id !== projectId))
   }
 
@@ -84,12 +87,12 @@ function Dashboard() {
 
     try {
       setIsCreating(true)
-      const response = await axios.post('http://localhost:8000/projects/', {
-        name: newProjectName.trim()
-      })
+      const response = await axios.post(
+        'http://localhost:8000/projects/', 
+        { name: newProjectName.trim() }
+      )
       
-      // WebSocket will handle adding the project to the list
-      // But we'll also add it locally for immediate feedback
+      // Add project locally for immediate feedback
       setProjects(prev => {
         const exists = prev.some(p => p.id === response.data.id)
         if (exists) return prev
@@ -130,7 +133,7 @@ function Dashboard() {
     fetchProjects()
   }
 
-  // Render the appropriate view
+  // Render appropriate view based on navigation state
   if (currentView === 'members' && selectedProjectId) {
     return (
       <Members 
@@ -149,22 +152,27 @@ function Dashboard() {
     )
   }
 
+  // Render header for all dashboard states
+  const renderHeader = () => (
+    <header className="fixed-header">
+      <div className="header-content">
+        <h1>Project Dashboard</h1>
+        <div className="header-right">
+          <ConnectionIndicator />
+          <div className="project-count">{projects.length} Projects</div>
+          <button className="add-project-btn" onClick={handleAddProject}>
+            <span className="add-icon">+</span>
+            Add Project
+          </button>
+        </div>
+      </div>
+    </header>
+  )
+
   if (loading) {
     return (
       <>
-        <header className="fixed-header">
-          <div className="header-content">
-            <h1>Project Dashboard</h1>
-            <div className="header-right">
-              <ConnectionIndicator />
-              <div className="project-count">{projects.length} Projects</div>
-              <button className="add-project-btn" onClick={handleAddProject}>
-                <span className="add-icon">+</span>
-                Add Project
-              </button>
-            </div>
-          </div>
-        </header>
+        {renderHeader()}
         <div className="dashboard">
           <div className="loading">
             <div className="loading-spinner"></div>
@@ -178,19 +186,7 @@ function Dashboard() {
   if (error) {
     return (
       <>
-        <header className="fixed-header">
-          <div className="header-content">
-            <h1>Project Dashboard</h1>
-            <div className="header-right">
-              <ConnectionIndicator />
-              <div className="project-count">{projects.length} Projects</div>
-              <button className="add-project-btn" onClick={handleAddProject}>
-                <span className="add-icon">+</span>
-                Add Project
-              </button>
-            </div>
-          </div>
-        </header>
+        {renderHeader()}
         <div className="dashboard">
           <div className="error">
             <p>{error}</p>
@@ -205,19 +201,7 @@ function Dashboard() {
 
   return (
     <>
-      <header className="fixed-header">
-        <div className="header-content">
-          <h1>Project Dashboard</h1>
-          <div className="header-right">
-            <ConnectionIndicator />
-            <div className="project-count">{projects.length} Projects</div>
-            <button className="add-project-btn" onClick={handleAddProject}>
-              <span className="add-icon">+</span>
-              Add Project
-            </button>
-          </div>
-        </div>
-      </header>
+      {renderHeader()}
       
       <div className="dashboard">
         <div className="projects-grid">
@@ -252,7 +236,9 @@ function Dashboard() {
           <div className="modal">
             <div className="modal-header">
               <h2>Create New Project</h2>
-              <button className="close-btn" onClick={handleCloseModal}>×</button>
+              <button className="close-btn" onClick={handleCloseModal}>
+                ×
+              </button>
             </div>
             <form onSubmit={handleCreateProject} className="modal-content">
               <div className="form-group">
@@ -302,7 +288,12 @@ function Dashboard() {
   )
 }
 
-function ProjectCard({ project, onDeleteProject, onViewMembers, onViewTasks }) {
+function ProjectCard({ 
+  project, 
+  onDeleteProject, 
+  onViewMembers, 
+  onViewTasks 
+}) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [taskCount, setTaskCount] = useState(null)
   const [loadingTasks, setLoadingTasks] = useState(false)
@@ -314,7 +305,9 @@ function ProjectCard({ project, onDeleteProject, onViewMembers, onViewTasks }) {
   const fetchTaskCount = async () => {
     try {
       setLoadingTasks(true)
-      const response = await axios.get(`http://localhost:8000/projects/${project.id}/tasks`)
+      const response = await axios.get(
+        `http://localhost:8000/projects/${project.id}/tasks`
+      )
       setTaskCount(response.data.length)
     } catch (err) {
       console.error('Error fetching tasks:', err)
@@ -343,7 +336,9 @@ function ProjectCard({ project, onDeleteProject, onViewMembers, onViewTasks }) {
 
       <div className="project-stats">
         <div className="stat">
-          <span className="stat-number">{project.members?.length || 0}</span>
+          <span className="stat-number">
+            {project.members?.length || 0}
+          </span>
           <span className="stat-label">Members</span>
         </div>
         <div className="stat">
@@ -358,7 +353,11 @@ function ProjectCard({ project, onDeleteProject, onViewMembers, onViewTasks }) {
         <div className="project-members">
           <div className="members-list">
             {project.members.slice(0, 4).map((member) => (
-              <div key={member.id} className="member-avatar" title={member.name}>
+              <div 
+                key={member.id} 
+                className="member-avatar" 
+                title={member.name}
+              >
                 {member.name.charAt(0).toUpperCase()}
               </div>
             ))}
@@ -399,7 +398,10 @@ function ProjectCard({ project, onDeleteProject, onViewMembers, onViewTasks }) {
             <button className="btn btn-danger-solid" onClick={handleDelete}>
               Delete
             </button>
-            <button className="btn secondary" onClick={() => setShowDeleteConfirm(false)}>
+            <button 
+              className="btn secondary" 
+              onClick={() => setShowDeleteConfirm(false)}
+            >
               Cancel
             </button>
           </div>
