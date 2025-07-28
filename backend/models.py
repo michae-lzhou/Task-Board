@@ -1,3 +1,10 @@
+################################################################################
+# models.py
+# Purpose:  Defines SQLAlchemy models for the appliaction's database schema,
+#           including Project, Task, User, and Project-User association tables,
+#           as well as their relationships
+################################################################################
+
 # Libraries
 from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Table
 from sqlalchemy.orm import relationship
@@ -26,7 +33,9 @@ class Project(Base):
     name = Column(String, unique=True, index=True)
 
     # Link to tasks
-    tasks = relationship("Task", back_populates="project", cascade="all, delete")
+    tasks = relationship("Task",
+                         back_populates="project",
+                         cascade="all, delete")
 
     # Many-to-many relationship to users
     members = relationship("User", secondary=project_members,
@@ -43,13 +52,16 @@ class Task(Base):
 
     # Foreign keys
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    assigned_to = Column(Integer,
+                         ForeignKey("users.id",
+                         ondelete="SET NULL"),
+                         nullable=True)
 
     # Relationships
     project = relationship("Project", back_populates="tasks")
     assigned_user = relationship("User")
 
-# User/team member table
+# User table
 class User(Base):
     __tablename__ = "users"
 

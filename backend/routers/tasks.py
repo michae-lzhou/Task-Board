@@ -1,8 +1,18 @@
+################################################################################
 # routers/tasks.py
+# Purpose:  Defines the API routes for task-related operations using FastAPI.
+#           Includes endpoints to create, read, update, and delete tasks within
+#           projects. Handles project and user validation, duplicate prevention,
+#           and assignment rules. Integrates with WebSocketManager to emit real-
+#           time task events, and raises meaningful HTTP exceptions for errors.
+################################################################################
+
+# Libraries
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from database import SessionLocal
 import logging
+
 # Local files
 from exceptions import *
 from crud import tasks
@@ -23,9 +33,6 @@ def get_db():
 #   viewing
 # * Disallows task creation if there are no projects
 # * Cannot have duplicate task names in the same project
-# TODO: THIS SHOULD BE FIXED TO WHICHEVER PROJECT YOU ARE CURRENTLY VIEWING
-# TODO: an extension of above: each tasks needs a project ID, so disallow any
-# task creation if there are no projects (bullet proof the operations)
 @router.post("/", response_model=schemas.Task)
 async def create_task(task: schemas.TaskCreate,
                       request: Request, db: Session = Depends(get_db)):
@@ -80,7 +87,8 @@ async def update_task(task_id: int, updated: schemas.TaskCreate,
 # Delete Task
 # * Handle not found error
 @router.delete("/{task_id}")
-async def delete_task(task_id: int, request: Request, db: Session = Depends(get_db)):
+async def delete_task(task_id: int, request: Request,
+                      db: Session = Depends(get_db)):
     try:
         task = tasks.delete_task(db, task_id)
         

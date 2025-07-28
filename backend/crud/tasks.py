@@ -1,11 +1,14 @@
-'''
-NOTE: everything here is actually what happens in the database, main.py is more
-logic and API endpoint flow + error handling
+################################################################################
+# crud/tasks.py
+# Purpose:  Implements CRUD operations for the Task model using SQLAlchemy.
+#           Includes functionality for task creation, retrieval (by ID and by
+#           project), updating (with validation for reassignment and
+#           duplicates), and deletion. Ensures business rules like project
+#           membership and task uniqueness are enforced at the database
+#           interaction layer. Again, ID's are used to ensure consistency in the
+#           event of data corruption.
+################################################################################
 
-NOTE: all instances are accessed via their unique id here to avoid problems deep
-into the code, other function figure out what the id is supposed to be from the
-individual fields
-'''
 # Libraries
 from sqlalchemy.orm import Session, selectinload
 

@@ -1,4 +1,8 @@
-# Suite of custom exceptions for debugging and maintainability
+################################################################################
+# exceptions.py
+# Purpose:  Defines a suite of custom exceptions for debugging, ensuring
+#           maintainability and modularity
+################################################################################
 
 class ProjectNotFound(Exception):
     def __init__(self, project_id: int):

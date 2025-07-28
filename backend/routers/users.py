@@ -1,8 +1,18 @@
+################################################################################
 # routers/users.py
+# Purpose:  Defines the API routes for user-related operations using FastAPI.
+#           Supports creating, retrieving, and deleting users, with validations
+#           for unique emails and user existence. Integrates with 
+#           WebSocketManager to emit real-time events on user creation and
+#           deletion. Users can exist independently of projects or tasks.
+################################################################################
+
+# Libraries
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from database import SessionLocal
 import logging
+
 # Local files
 from exceptions import *
 from crud import users
@@ -54,7 +64,8 @@ def read_all_users(db: Session = Depends(get_db)):
 # Delete User
 # * Handle not found error
 @router.delete("/{user_id}")
-async def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
+async def delete_user(user_id: int, request: Request,
+                      db: Session = Depends(get_db)):
     try:
         user = users.delete_user(db, user_id)
         

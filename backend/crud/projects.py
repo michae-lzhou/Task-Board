@@ -1,11 +1,12 @@
-'''
-NOTE: everything here is actually what happens in the database, main.py is more
-logic and API endpoint flow + error handling
+################################################################################
+# crud/projects.py
+# Purpose:  Implements CRUD operations for the Project model using SQLAlchemy.
+#           Functions include creating, reading, adding/removing users, and
+#           deleting projects. All operations are performed using project IDs to
+#           ensure consistent and reliable access to records in the event of
+#           database corruption.
+################################################################################
 
-NOTE: all instances are accessed via their unique id here to avoid problems deep
-into the code, other function figure out what the id is supposed to be from the
-individual fields
-'''
 # Libraries
 from sqlalchemy.orm import Session
 
@@ -41,7 +42,6 @@ def get_project(db: Session, project_id: int):
         raise ProjectNotFound(project_id)
     return project
 
-''' TODO: maybe send a message saying there are no projects?? '''
 def get_all_projects(db: Session):
     projects = db.query(Project).all()
     return projects
@@ -65,7 +65,7 @@ def add_user_to_project(db: Session, project_id: int, user_id: int):
         project.members.append(user)
         db.commit()
         db.refresh(project)
-        db.refresh(user)  # Add this line to refresh the user object too
+        db.refresh(user)
     else:
         raise UserInProject(user.name, project.name)
 
@@ -87,6 +87,7 @@ def remove_user_from_project(db: Session, project_id: int, user_id: int):
 
     if user in project.members:
         project.members.remove(user)
+
         # Find tasks in this project assigned to the user and reassign to NULL
         tasks = db.query(Task).filter(
                     Task.project_id == project_id,

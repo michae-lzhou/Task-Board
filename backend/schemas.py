@@ -1,9 +1,17 @@
+################################################################################
+# schemas.py
+# Purpose:  Defines Pydantic schemas for request validation and response models
+#           used in the API, including user, project, and task data structures.
+#           Ensures data integrity, serialization, and type enforcement across
+#           the application.
+################################################################################
+
 # Libraries
 from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from enum import Enum
 
-# Fixed itask status
+# Fixed task status
 class TaskStatus(str, Enum):
     todo = "todo"
     in_progress = "in-progress"

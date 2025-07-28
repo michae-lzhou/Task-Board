@@ -1,11 +1,12 @@
-'''
-NOTE: everything here is actually what happens in the database, main.py is more
-logic and API endpoint flow + error handling
+################################################################################
+# crud/users.py
+# Purpose:  Implements CRUD and search operations for the User model using
+#           SQLAlchemy. Handles user creation with email uniqueness validation,
+#           retrieval by ID or project, deletion with task cleanup, and fallback
+#           creation through email-based lookup. Again, ID is used to reference
+#           users to ensure consistency in case of data corruption.
+################################################################################
 
-NOTE: all instances are accessed via their unique id here to avoid problems deep
-into the code, other function figure out what the id is supposed to be from the
-individual fields
-'''
 # Libraries
 from sqlalchemy.orm import Session
 from pydantic import EmailStr
@@ -55,7 +56,8 @@ def get_users_by_project(db: Session, project_id: int):
         raise ProjectNotFound(project_id)
     return project.members
 
-# Update - No need to update user information
+# Update - No need to update user information, from the clients' side, simply
+#          remove and re-add a member to a project.
 
 # Search
 def find_user_by_email(db: Session, name: str, email: EmailStr):
@@ -77,7 +79,9 @@ def delete_user(db: Session, user_id: int):
         raise UserNotFound(user_id)
 
     # Update all tasks assigned to this user to have assigned_to = None
-    db.query(Task).filter(Task.assigned_to == user_id).update({"assigned_to": None})
+    db.query(Task).filter(
+            Task.assigned_to == user_id
+    ).update({"assigned_to": None})
 
     db.delete(db_user)
     db.commit()

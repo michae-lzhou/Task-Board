@@ -1,8 +1,18 @@
+################################################################################
 # routers/projects.py
+# Purpose:  Defines the API routes for project-related operations using FastAPI.
+#           Includes endpoints for creating, reading, updating, and deleting
+#           projects, managing project members, and retrieving associated tasks
+#           and users. Integrates with WebSocketManager to emit real-time events
+#           on changes and handles all relevant exceptions gracefully.
+################################################################################
+
+# Libraries
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from database import SessionLocal
 import logging
+
 # Local files
 from exceptions import *
 from crud import projects, users
@@ -66,7 +76,8 @@ async def add_member(project_id: int, user: schemas.UserCreate,
         
         # Emit WebSocket event
         ws_manager = WebSocketManager(request.app.state.sio)
-        await ws_manager.emit_member_added(project_id, convert_to_dict(added_user))
+        await ws_manager.emit_member_added(project_id,
+                                           convert_to_dict(added_user))
         
         return added_user
     except (UserNotFound, ProjectNotFound) as e:
@@ -90,11 +101,13 @@ async def remove_member(project_id: int, user: schemas.UserCreate,
     try:
         project = projects.get_project(db, project_id)
         user = users.find_user_by_email(db, user.name, user.email)
-        removed_user = projects.remove_user_from_project(db, project_id, user.id)
+        removed_user = projects.remove_user_from_project(db, project_id,
+                                                         user.id)
         
         # Emit WebSocket event
         ws_manager = WebSocketManager(request.app.state.sio)
-        await ws_manager.emit_member_removed(project_id, convert_to_dict(removed_user))
+        await ws_manager.emit_member_removed(project_id,
+                                             convert_to_dict(removed_user))
         
         return removed_user
     except (UserNotFound, ProjectNotFound) as e:

@@ -1,4 +1,12 @@
+################################################################################
 # main.py
+# Purpose:  Initializes and configures the FastAPI application, sets up CORS
+#           middleware, database connections, and Socket.IO for real-time
+#           updates. Registers API routers for projects, tasks, and users.
+#           Defines global error handling middleware and WebSockey event
+#           handlers.
+################################################################################
+
 # Libraries
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -6,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import Base, engine, SessionLocal
 import logging
 import socketio
+
 # Local files
 import models
 from routers import projects, tasks, users
@@ -53,7 +62,8 @@ def get_db():
 @sio.event
 async def connect(sid, environ):
     print(f"Client connected: {sid}")
-    await sio.emit("connection_established", {"message": "Connected to server"}, room=sid)
+    await sio.emit("connection_established", \
+                   {"message": "Connected to server"}, room=sid)
 
 @sio.event
 async def disconnect(sid):
