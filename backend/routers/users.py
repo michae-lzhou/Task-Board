@@ -10,14 +10,14 @@
 # Libraries
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from database import SessionLocal
 import logging
 
 # Local files
-from exceptions import *
-from crud import users
-import schemas
-from websocket_utils import WebSocketManager, convert_to_dict
+from ..exceptions import *
+from ..database import SessionLocal
+from ..crud import users
+from .. import schemas
+from ..websocket_utils import WebSocketManager, convert_to_dict
 
 router = APIRouter()
 

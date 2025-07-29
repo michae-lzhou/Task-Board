@@ -11,9 +11,9 @@
 from sqlalchemy.orm import Session
 
 # Local files
-from models import Project, User, Task
-from schemas import ProjectCreate
-from exceptions import *
+from ..models import Project, User, Task
+from ..schemas import ProjectCreate
+from ..exceptions import *
 
 ################################################################################
 ###                                 Project                                  ###
@@ -27,7 +27,7 @@ def create_project(db: Session, project: ProjectCreate):
     if dupe:
         raise DuplicateProjectName(project.name)
 
-    db_project = Project(**project.dict())
+    db_project = Project(**project.model_dump())
     db.add(db_project)
     db.commit()
     db.refresh(db_project)

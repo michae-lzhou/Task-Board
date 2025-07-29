@@ -10,14 +10,14 @@
 # Libraries
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from database import SessionLocal
 import logging
 
 # Local files
-from exceptions import *
-from crud import projects, users
-import schemas
-from websocket_utils import WebSocketManager, convert_to_dict
+from ..exceptions import *
+from ..database import SessionLocal
+from ..crud import projects, users, tasks
+from .. import schemas
+from ..websocket_utils import WebSocketManager, convert_to_dict
 
 router = APIRouter()
 
@@ -145,7 +145,6 @@ async def delete_project(project_id: int,
 @router.get("/{project_id}/tasks", response_model=list[schemas.Task])
 def read_tasks_by_project(project_id: int, db: Session = Depends(get_db)):
     try:
-        from crud import tasks
         return tasks.get_tasks_by_project(db, project_id)
     except ProjectNotFound as e:
         logging.warning(e.message)

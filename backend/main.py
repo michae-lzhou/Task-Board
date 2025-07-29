@@ -11,13 +11,13 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from database import Base, engine, SessionLocal
 import logging
 import socketio
 
 # Local files
-import models
-from routers import projects, tasks, users
+from . import models
+from .database import Base, engine, SessionLocal
+from .routers import projects, tasks, users
 
 # Set up basic logging for errors
 logging.basicConfig(level=logging.INFO,

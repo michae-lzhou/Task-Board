@@ -13,9 +13,9 @@
 from sqlalchemy.orm import Session, selectinload
 
 # Local files
-from models import Project, Task, User
-from schemas import TaskCreate
-from exceptions import *
+from ..models import Project, Task, User
+from ..schemas import TaskCreate
+from ..exceptions import *
 
 ################################################################################
 ###                                  Task                                    ###
@@ -38,7 +38,26 @@ def create_task(db: Session, task: TaskCreate):
     if dupe:
         raise DuplicateTaskName(task.title, project.name)
 
-    db_task = Task(**task.dict())
+    # Check if the assigned user is a member of the project
+    if task.assigned_to is not None:
+        assignee = db.query(User).filter(
+                        User.id == task.assigned_to
+                   ).first()
+        if not assignee:
+            raise UserNotFound(task.assigned_to)
+
+        project = db.query(Project).filter(
+                        Project.id == task.project_id
+                  ).first()
+        if not project:
+            raise ProjectNotFound(task.project_id)
+        user_ids = [user.id for user in project.members]
+        # Since members of a project HAS to be valid users, no need to double
+        # check here
+        if assignee.id not in user_ids:
+            raise AssigneeNotMember(assignee.name, project.name)
+
+    db_task = Task(**task.model_dump())
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
@@ -112,7 +131,7 @@ def update_task(db: Session, task_id: int, updated: TaskCreate):
     if dupe:
         raise DuplicateTaskName(updated.title, project.name)
 
-    for key, value in updated.dict().items():
+    for key, value in updated.model_dump().items():
         setattr(db_task, key, value)
     db.commit()
     db.refresh(db_task)

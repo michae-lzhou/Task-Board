@@ -34,7 +34,7 @@ class WebSocketManager:
     # Generic method to emit events with consistent structure
     async def _emit_event(self, event_type: Union[EventType, str],
                           data: Dict[str, Any]):
-        event_name = event_type.value if isinstance(event_type, EventType)
+        event_name = event_type.value if isinstance(event_type, EventType) \
                                       else event_type
         
         payload = {

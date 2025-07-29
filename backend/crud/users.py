@@ -12,9 +12,9 @@ from sqlalchemy.orm import Session
 from pydantic import EmailStr
 
 # Local files
-from models import Project, User, Task
-from schemas import UserCreate
-from exceptions import *
+from ..models import Project, User, Task
+from ..schemas import UserCreate
+from ..exceptions import *
 
 ################################################################################
 ###                                  User                                    ###
@@ -29,7 +29,7 @@ def create_user(db: Session, user: UserCreate):
     if dupe:
         raise DuplicateUserEmail(user.email)
 
-    db_user = User(**user.dict())
+    db_user = User(**user.model_dump())
     db.add(db_user)
     db.commit()
     db.refresh(db_user)

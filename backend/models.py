@@ -8,8 +8,10 @@
 # Libraries
 from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Table
 from sqlalchemy.orm import relationship
-from database import Base
 import enum
+
+# Local files
+from .database import Base
 
 # Association table for many-to-many Project <-> User
 project_members = Table(

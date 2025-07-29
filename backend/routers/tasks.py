@@ -10,14 +10,14 @@
 # Libraries
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from database import SessionLocal
 import logging
 
 # Local files
-from exceptions import *
-from crud import tasks
-import schemas
-from websocket_utils import WebSocketManager, convert_to_dict
+from ..exceptions import *
+from ..database import SessionLocal
+from ..crud import tasks
+from .. import schemas
+from ..websocket_utils import WebSocketManager, convert_to_dict
 
 router = APIRouter()
 
@@ -33,6 +33,7 @@ def get_db():
 #   viewing
 # * Disallows task creation if there are no projects
 # * Cannot have duplicate task names in the same project
+# * Cannot assign task to non-members
 @router.post("/", response_model=schemas.Task)
 async def create_task(task: schemas.TaskCreate,
                       request: Request, db: Session = Depends(get_db)):
@@ -47,7 +48,7 @@ async def create_task(task: schemas.TaskCreate,
     except ProjectNotFound as e:
         logging.warning(e.message)
         raise HTTPException(status_code=404, detail=e.message)
-    except DuplicateTaskName as e:
+    except (DuplicateTaskName, AssigneeNotMember) as e:
         logging.warning(e.message)
         raise HTTPException(status_code=400, detail=e.message)
 
